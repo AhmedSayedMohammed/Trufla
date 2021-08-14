@@ -6,7 +6,7 @@ import sys
 import time
 import xmltodict
 from os import path
-
+import requests
 from db_connection import get_trufla_db
 
 trufla_db = get_trufla_db()
@@ -30,6 +30,24 @@ class FileParser:
     def save_dict_to_mongodb(self, collection_name):
         trufla_db.get_collection(collection_name).insert_one(self.data_dict)
         print('file saved to mongodb')
+
+    def decode_vin_vehicle(self, json_destination_path):
+        try:
+            vehicles = self.data_dict['Insurance']['Transaction']['Customer']['Units']['Auto']['Vehicle']
+        except Exception as e:
+            print('key error')
+            return False
+        new_vehicles = []
+        # check if vehicles is one object or array of objects
+        if isinstance(vehicles, dict):
+            new_vehicles = combine_vehicles_keys(vehicles)
+        else:
+            for vehicle in vehicles:
+                new_vehicle = combine_vehicles_keys(vehicle)
+                new_vehicles.append(new_vehicle)
+
+        self.data_dict['Insurance']['Transaction']['Customer']['Units']['Auto']['Vehicle'] = new_vehicles
+        self.save_dict_as_json_file(json_destination_path)
 
 
 def parse_xml_to_dict(xml_source_path):
@@ -55,7 +73,9 @@ def parse_csv_to_dict(csv_source_path):
 
 
 def main(argv):
+    # reading commands
     try:
+
         opt, args = getopt.getopt(argv, "hi:o:", ["ifile=", "ofile="])
     except getopt.GetoptError:
         print("command not valid")
@@ -63,16 +83,23 @@ def main(argv):
 
     # args[0] is the file format
     # args[1] is the file name
+    # length has to be greater than two to start checking the command
     if len(args) >= 2:
+        # loop will start from second position, the first one is file format
         for index in range(1, len(args)):
-            input_file_path = get_input_path(args[0], args[index])
-            output_file_path = get_output_path(args[0], args[index])
-            if args[0] == 'csv':
+            file_name = args[index]
+            file_format = args[0]
+            input_file_path = get_input_path(file_format, file_name)
+            # output_file_path = get_output_path(file_format, file_name)
+            if file_format == 'csv':
                 file = FileParser(input_file_path, parse_csv_to_dict)
-                file.save_dict_to_mongodb(args[0])
-            elif args[0] == 'xml':
+                file.save_dict_to_mongodb(file_format)
+            elif file_format == 'xml':
                 file = FileParser(input_file_path, parse_xml_to_dict)
-                file.save_dict_to_mongodb(args[0])
+                # file.save_dict_to_mongodb(file_format)
+                enriched_file_name = file_name + "_enriched"
+                output_file_path = get_output_path(file_format, enriched_file_name)
+                file.decode_vin_vehicle(output_file_path)
 
     else:
         print("command not valid")
@@ -84,6 +111,28 @@ def get_input_path(file_format, file_name):
 
 def get_output_path(file_format, file_name):
     return str(pathlib.Path().resolve()) + "/output/" + file_format + "/" + str(time.time()) + "_" + file_name + ".json"
+
+
+def combine_vehicles_keys(vehicle):
+    vehicle_vin_number = vehicle['VinNumber']
+    model_year = vehicle['ModelYear']
+    # call api
+    response = requests.get(
+        "https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvaluesextended/" + vehicle_vin_number + "?format=json&modelyear=" + model_year + "")
+    json_result = response.json()
+    # the new vehicle contain both old keys and new keys
+    new_vehicle = {
+        "@id": vehicle['@id'],
+        "Make": vehicle['Make'],
+        "VinNumber": vehicle['VinNumber'],
+        "ModelYear": vehicle['ModelYear'],
+        # the api returns the result in array so i have to take first index (0)
+        "model": json_result['Results'][0]['Model'],
+        "manufacturer": json_result['Results'][0]['Manufacturer'],
+        "plant_country": json_result['Results'][0]['PlantCountry'],
+        "vehicle_type": json_result['Results'][0]['VehicleType']
+    }
+    return new_vehicle
 
 
 if __name__ == "__main__":
