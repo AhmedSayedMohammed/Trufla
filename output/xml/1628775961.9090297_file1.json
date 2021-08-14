@@ -1,1 +1,31 @@
-{"Insurance": {"Transaction": {"Date": "2020-10-15", "Customer": {"@id": "ID1011601", "Name": "Esm\u0623\u00a9 Babin", "Address": "3344 Joy Lane", "Phone": "818-537-1995", "Units": {"Auto": {"Vehicle": [{"@id": "V1000", "Make": "GMC", "VinNumber": "1GDJC33648F200204", "ModelYear": "2008"}, {"@id": "V1001", "Make": "Chevrolet", "VinNumber": "1G1Z464865F214437", "ModelYear": "2005"}]}}}}}}
+{
+  "Insurance": {
+    "Transaction": {
+      "Date": "2020-10-15",
+      "Customer": {
+        "@id": "ID1011601",
+        "Name": "Esm\u0623\u00a9 Babin",
+        "Address": "3344 Joy Lane",
+        "Phone": "818-537-1995",
+        "Units": {
+          "Auto": {
+            "Vehicle": [
+              {
+                "@id": "V1000",
+                "Make": "GMC",
+                "VinNumber": "1GDJC33648F200204",
+                "ModelYear": "2008"
+              },
+              {
+                "@id": "V1001",
+                "Make": "Chevrolet",
+                "VinNumber": "1G1Z464865F214437",
+                "ModelYear": "2005"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
