@@ -20,4 +20,4 @@ this app will parse file formats from input folder to output folder
   
   "python parser.py  csv vehicles_file1 customers_file1"
 # Notes
-don't write file extension after file name as it's already written before it
+don't write file extension after file name, it's already written before it
